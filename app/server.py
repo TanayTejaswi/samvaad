@@ -184,7 +184,7 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             message = await websocket.receive()
-            if "bytes" in message:
+            if message.get("bytes") is not None:
                 # Browser sends Float32 PCM array buffer
                 audio_bytes = message["bytes"]
                 audio_array = np.frombuffer(audio_bytes, dtype=np.float32)
