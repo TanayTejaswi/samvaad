@@ -1,73 +1,64 @@
-# SAMVAAD (Shravan Engine)
+# Samvaad / Shravan
 
-> **Offline, NPU-Accelerated Real-Time Speech Perception & Captioning for Qualcomm Snapdragon® X-Series PCs.**
+An offline, Hexagon NPU-accelerated live captioning application designed specifically for the Snapdragon X-Series (Windows on ARM64). This project adheres to strict local execution and data privacy rules, eliminating all external cloud dependencies.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
-[![Platform](https://img.shields.io/badge/platform-Windows%2011%20ARM64-brightgreen.svg)]()
-[![Hardware](https://img.shields.io/badge/NPU-Qualcomm%20Hexagon%20HTP-orange.svg)]()
-[![License](https://img.shields.io/badge/privacy-100%25%20Offline-success.svg)]()
+## Architecture
 
----
+- **Hardware Target**: Snapdragon X Elite / X Plus (ARM64)
+- **Engine**: Qualcomm AI Hub Whisper-Small-Quantized
+- **Runtime**: ONNX Runtime (QNN Execution Provider)
+- **Backend**: FastAPI + WebSockets + SQLite (Local storage)
+- **Frontend**: React + Vite (Tailwind UI with Glassmorphism)
+- **Audio Capture**: Real-time ring buffer using `sounddevice`
 
-## Overview
+## Setup & Installation
 
-**Samvaad** (code-named **Shravan** for its speech perception module) is a high-performance, privacy-first transcription and real-time captioning engine engineered for Qualcomm Snapdragon® X-Series laptops. It leverages the dedicated Qualcomm Hexagon NPU via `onnxruntime-qnn` to deliver sub-second speech-to-text without cloud connectivity or battery drain.
+### Windows on ARM64 (Primary Target)
+1. Ensure Python 3.11+ is installed.
+2. Run the setup script to create the environment:
+   ```powershell
+   .\scripts\setup.ps1
+   ```
+3. Download the Whisper model files from Qualcomm AI Hub (see `models/README.md`) and place them in the `models/` folder.
 
-### Core Capabilities
-- **Local NPU Execution**: Whisper encoder and decoder loops executed on the Hexagon NPU using the QNN Execution Provider (HTP backend) with `session.disable_cpu_ep_fallback = 1`.
-- **100% Privacy & Zero-Cloud**: Operates completely in airplane mode. Zero audio or telemetry ever leaves the device.
-- **Accessible Design System**: Built with the official **Samvaad Design System** featuring high-contrast ergonomics, WCAG AAA readability, and multi-modal state indicators.
-- **WebSocket Event Bus**: Live asynchronous stream emitting `STATUS` and `TRANSCRIPT` events to any client application.
-- **Auditable Benchmarking**: Every latency and power claim is backed by raw, reproducible CSV datasets.
-
----
-
-## Repository Structure
-
-```
-samvaad/
-├── config/             # Dynamic YAML settings (no hardcoded constants)
-├── app/                # FastAPI application, audio capture ring buffer, energy VAD, SQLite storage
-├── inference/          # QNN session factory, Whisper NPU/CPU inference engines, mel filterbank
-├── frontend/           # React + Vite + Tailwind CSS accessibility UI
-├── models/             # Qualcomm AI Hub model manifests, checksums, and download instructions
-├── benchmarks/         # Latency, WER, and psutil resource monitoring harnesses
-├── data/               # Test audio assets and local SQLite databases
-├── scripts/            # Single-command setup and launch scripts for Windows ARM64 and Linux
-├── docs/               # Architecture diagrams, decision logs, and benchmark methodology
-└── tests/              # Automated pytest verification test suite
-```
-
----
-
-## Quick Start
-
-### Windows 11 on Snapdragon X-Series (ARM64)
-```powershell
-# 1. Clone repository
-git clone https://github.com/TanayTejaswi/samvaad.git
-cd samvaad
-
-# 2. Setup native ARM64 virtual environment & dependencies
-powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
-
-# 3. Launch application
-powershell -ExecutionPolicy Bypass -File scripts\run.ps1
-```
-
-### Linux / POSIX Development
+### Linux x86_64 (Development / Evaluation Fallback)
+The engine automatically falls back to `CPUExecutionProvider` when running unit tests or working on a non-ARM64 dev host.
 ```bash
-# Setup environment
-bash scripts/setup_linux.sh
-
-# Run test suite
-.venv/bin/pytest -v
+./scripts/setup_linux.sh
 ```
 
----
+## Running the Application
 
-## Engineering Standards & Rules
-- **Python**: Python 3.11+ strictly typed.
-- **Linting**: Enforced via Ruff (`ruff check .`).
-- **Testing**: Automated coverage via Pytest.
-- **Hardware Honesty**: No synthetic, estimated, or extrapolated benchmarks.
+### 1. Start the Backend Server
+This hosts the REST API, WebSocket bus, and SQLite background daemon:
+```bash
+python -m uvicorn app.server:app --host 0.0.0.0 --port 8000
+```
+
+### 2. Start the Frontend
+In a new terminal:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+Navigate to `http://localhost:5173` to view the live dashboard.
+
+## Benchmarks & Evaluation
+
+To evaluate the latency (P95, P99) of the NPU versus CPU fallback:
+```bash
+python benchmarks/latency.py
+```
+To calculate the Word Error Rate (WER):
+```bash
+python benchmarks/wer.py
+```
+
+All outputs are saved as CSV files inside the `data/` directory.
+
+## Testing
+Run the comprehensive unit test suite:
+```bash
+pytest tests/
+```
