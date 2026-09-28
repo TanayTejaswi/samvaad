@@ -26,10 +26,10 @@ audio:
   ring_buffer_seconds: 60.0
 
 vad:
-  energy_threshold: 0.001
-  silence_duration_s: 0.5
-  min_speech_duration_s: 0.2
-  max_speech_duration_s: 30.0
+  energy_threshold: 0.015
+  silence_duration_s: 0.8
+  min_speech_duration_s: 0.3
+  max_speech_duration_s: 10.0
   speech_pad_s: 0.2
 
 inference:

@@ -79,7 +79,6 @@ export default function App() {
       processor.onaudioprocess = (e) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
         const channelData = e.inputBuffer.getChannelData(0);
-        // Send a copy of the actual underlying data
         wsRef.current.send(new Float32Array(channelData).buffer);
       };
 
@@ -132,17 +131,17 @@ export default function App() {
   const keywords = extractKeywords(history.slice(0, 50).map(t => t.text));
 
   return (
-    <div className="min-h-screen bg-samvaad-bgPrimary text-samvaad-textPrimary font-sans flex flex-col selection:bg-samvaad-accentPrimary selection:text-white">
+    <div className="min-h-screen bg-samvaad-bgPrimary text-samvaad-textPrimary font-sans flex flex-col selection:bg-samvaad-accentPrimary selection:text-black">
       
       {/* HEADER */}
-      <header className="h-20 bg-samvaad-bgSecondary/80 backdrop-blur-md border-b border-samvaad-border flex items-center justify-between px-8 sticky top-0 z-50 shadow-glow">
+      <header className="h-20 bg-samvaad-bgPrimary border-b border-samvaad-border flex items-center justify-between px-8 sticky top-0 z-50">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-samvaad-accentPrimary flex items-center justify-center text-white shadow-glow animate-fade-in">
+          <div className="w-10 h-10 rounded-full bg-black flex items-center justify-center text-samvaad-accentPrimary shadow-glow animate-fade-in">
             <Sparkles size={20} />
           </div>
           <div>
-            <h1 className="font-display font-bold text-2xl tracking-tighter text-white">Samvaad</h1>
-            <p className="text-xs font-medium text-samvaad-accentPrimary uppercase tracking-widest">Hexagon NPU Engine</p>
+            <h1 className="font-display font-black text-2xl tracking-tighter text-black">Samvaad</h1>
+            <p className="text-xs font-bold text-samvaad-textMuted uppercase tracking-widest">Hexagon NPU Engine</p>
           </div>
         </div>
         
@@ -150,10 +149,10 @@ export default function App() {
           
           <button 
             onClick={toggleRecording}
-            className={`flex items-center gap-2 border px-5 py-2.5 rounded-button text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0 ${
+            className={`flex items-center gap-2 border px-6 py-2.5 rounded-full text-sm font-bold transition-all hover:-translate-y-0.5 active:translate-y-0 ${
               isRecording 
-                ? 'bg-red-500/10 text-red-500 border-red-500/30 hover:shadow-glow' 
-                : 'bg-samvaad-accentPrimary text-white border-samvaad-accentPrimary hover:shadow-glow-hover'
+                ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' 
+                : 'bg-black text-samvaad-accentPrimary border-black hover:shadow-glow-hover'
             }`}
           >
             {isRecording ? <MicOff size={16} /> : <Mic size={16} />} 
@@ -162,17 +161,17 @@ export default function App() {
 
           <button 
             onClick={simulateSpeech}
-            className="flex items-center gap-2 bg-samvaad-bgSecondary text-white border border-samvaad-border hover:border-samvaad-textMuted shadow-sm hover:shadow-glow px-4 py-2.5 rounded-button text-sm font-semibold transition-all hover:-translate-y-0.5"
+            className="flex items-center gap-2 bg-white text-black border border-samvaad-border hover:border-black shadow-sm px-4 py-2.5 rounded-full text-sm font-bold transition-all hover:-translate-y-0.5"
           >
-            <Zap size={16} /> Simulate
+            <Zap size={16} className="text-samvaad-accentPrimary" /> Simulate
           </button>
 
-          <div className="flex items-center gap-3 bg-samvaad-bgPrimary px-4 py-2.5 rounded-button border border-samvaad-border">
+          <div className="flex items-center gap-3 bg-samvaad-bgSecondary px-5 py-2.5 rounded-full border border-samvaad-border">
             <div className="relative flex h-3 w-3">
-              {(status === 'transcribing' || status === 'listening') && <span className="animate-pulse-glow absolute inline-flex h-full w-full rounded-full bg-samvaad-accentPrimary opacity-60"></span>}
-              <span className={`relative inline-flex rounded-full h-3 w-3 ${status === 'offline' ? 'bg-red-500' : 'bg-samvaad-accentPrimary'}`}></span>
+              {(status === 'transcribing' || status === 'listening') && <span className="animate-pulse-glow absolute inline-flex h-full w-full rounded-full bg-samvaad-accentPrimary opacity-80"></span>}
+              <span className={`relative inline-flex rounded-full h-3 w-3 ${status === 'offline' ? 'bg-red-500' : 'bg-black'}`}></span>
             </div>
-            <span className="text-sm font-bold uppercase tracking-wider text-samvaad-textMuted">
+            <span className="text-sm font-black uppercase tracking-widest text-black">
               {status}
             </span>
           </div>
@@ -185,25 +184,25 @@ export default function App() {
         {/* LIVE TRANSCRIPT FEED */}
         <section className="flex-1 flex flex-col relative">
           <div className="flex items-center justify-between mb-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            <h2 className="font-display text-3xl font-bold tracking-tight text-white">Live Captions</h2>
-            <Activity size={24} className="text-samvaad-textMuted" />
+            <h2 className="font-display text-4xl font-black tracking-tighter text-black">Live Captions</h2>
+            <Activity size={28} className="text-samvaad-textMuted opacity-30" />
           </div>
           
-          <div className="flex-1 bg-samvaad-bgSecondary rounded-card border border-samvaad-border shadow-glow p-8 overflow-y-auto relative flex flex-col gap-6">
+          <div className="flex-1 bg-samvaad-bgSecondary rounded-card border border-samvaad-border p-8 overflow-y-auto relative flex flex-col gap-6 shadow-sm">
             {transcripts.length === 0 ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-samvaad-textMuted opacity-50 animate-pulse-glow">
-                <Mic size={64} className="mb-6 stroke-1 text-samvaad-accentPrimary" />
-                <p className="text-xl font-display font-medium text-white">Awaiting Audio Input...</p>
-                <p className="text-sm mt-2">Click "Start Mic" to stream real-time.</p>
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-samvaad-textMuted opacity-60 animate-pulse-glow">
+                <Mic size={64} className="mb-6 stroke-1 text-black" />
+                <p className="text-2xl font-display font-bold text-black">Awaiting Audio Input</p>
+                <p className="text-base mt-2 font-medium">Click "Start Mic" to stream real-time.</p>
               </div>
             ) : (
               transcripts.map((t, i) => (
-                <div key={i} className="animate-slide-up group">
-                  <p className="text-2xl leading-snug font-medium text-white">{t.text}</p>
-                  <div className="mt-3 flex items-center gap-4 text-sm text-samvaad-textMuted font-mono opacity-60 group-hover:opacity-100 transition-opacity">
+                <div key={i} className="animate-slide-up group bg-white p-6 rounded-card border border-samvaad-border shadow-sm hover:shadow-md transition-shadow">
+                  <p className="text-3xl leading-snug font-bold text-black">{t.text}</p>
+                  <div className="mt-4 flex items-center gap-4 text-sm text-samvaad-textMuted font-mono">
                     <span className="flex items-center gap-1.5"><Clock size={14} /> {new Date(t.timestamp).toLocaleTimeString()}</span>
-                    <span className="flex items-center gap-1.5 bg-samvaad-bgPrimary px-2 py-0.5 rounded border border-samvaad-border text-samvaad-accentSecondary"><Cpu size={14} /> {t.device.toUpperCase()} </span>
-                    <span className="text-samvaad-accentPrimary font-semibold">{t.latency_ms}ms</span>
+                    <span className="flex items-center gap-1.5 bg-samvaad-bgSecondary px-2.5 py-1 rounded-full border border-samvaad-border text-black font-bold"><Cpu size={14} /> {t.device.toUpperCase()} </span>
+                    <span className="text-samvaad-accentPrimary font-black bg-black px-2.5 py-1 rounded-full">{t.latency_ms}ms</span>
                   </div>
                 </div>
               ))
@@ -213,37 +212,37 @@ export default function App() {
         </section>
 
         {/* SIDEBAR */}
-        <aside className="w-[380px] flex flex-col gap-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+        <aside className="w-[400px] flex flex-col gap-8 animate-fade-in" style={{ animationDelay: '0.3s' }}>
           
           {/* KEYWORDS */}
-          <div className="bg-gradient-to-br from-samvaad-accentPrimary to-samvaad-accentSecondary text-white rounded-card shadow-glow p-6">
-            <h2 className="font-display text-lg font-bold mb-6 flex items-center gap-2">
-              <BookOpen size={20} /> Extracted Topics
+          <div className="bg-black text-white rounded-card shadow-glow p-8">
+            <h2 className="font-display text-2xl font-black mb-6 flex items-center gap-3 text-samvaad-accentPrimary">
+              <BookOpen size={24} /> Topics
             </h2>
             {keywords.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {keywords.map(kw => (
-                  <span key={kw} className="px-3 py-1.5 bg-black/20 hover:bg-black/30 transition-colors cursor-default text-sm rounded-button font-medium border border-white/20">
+                  <span key={kw} className="px-4 py-2 bg-white/10 hover:bg-white/20 transition-colors cursor-default text-sm rounded-full font-bold border border-samvaad-accentPrimary/30 text-samvaad-accentPrimary">
                     {kw}
                   </span>
                 ))}
               </div>
             ) : (
-              <p className="text-white/80 text-sm font-medium">Topics will appear here as the conversation progresses.</p>
+              <p className="text-white/60 text-sm font-medium">Topics will appear here as you speak.</p>
             )}
           </div>
           
           {/* HISTORY */}
-          <div className="flex-1 bg-samvaad-bgSecondary rounded-card border border-samvaad-border shadow-lg p-6 flex flex-col overflow-hidden">
-            <h2 className="font-display text-lg font-bold mb-6 text-white flex items-center gap-2">
-              <Clock size={20} className="text-samvaad-textMuted" /> History Log
+          <div className="flex-1 bg-white rounded-card border border-samvaad-border shadow-sm p-8 flex flex-col overflow-hidden">
+            <h2 className="font-display text-2xl font-black mb-6 text-black flex items-center gap-3">
+              <Clock size={24} className="text-samvaad-textMuted opacity-50" /> History
             </h2>
             <div className="flex-1 overflow-y-auto pr-2 space-y-6">
-              {history.length === 0 && <p className="text-sm text-samvaad-textMuted">No previous transcripts.</p>}
+              {history.length === 0 && <p className="text-sm text-samvaad-textMuted font-medium">No previous transcripts.</p>}
               {history.map((t, i) => (
-                <div key={i} className="group cursor-default border-l-2 border-transparent hover:border-samvaad-accentPrimary pl-3 transition-colors">
-                  <p className="text-sm text-samvaad-textMuted line-clamp-3 leading-relaxed group-hover:text-white transition-colors">{t.text}</p>
-                  <span className="text-xs text-samvaad-accentPrimary/70 mt-2 block font-mono">{new Date(t.timestamp).toLocaleTimeString()}</span>
+                <div key={i} className="group cursor-default border-l-4 border-samvaad-border hover:border-samvaad-accentPrimary pl-4 py-1 transition-colors">
+                  <p className="text-base font-semibold text-samvaad-textMuted line-clamp-3 leading-relaxed group-hover:text-black transition-colors">{t.text}</p>
+                  <span className="text-xs text-black mt-2 block font-mono font-bold">{new Date(t.timestamp).toLocaleTimeString()}</span>
                 </div>
               ))}
             </div>

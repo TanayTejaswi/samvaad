@@ -28,3 +28,4 @@ onnx>=1.16.0
 # On Linux / non-Snapdragon x64: install onnxruntime
 onnxruntime>=1.19.0; platform_system != "Windows" or platform_machine != "ARM64"
 onnxruntime-qnn>=1.19.0; platform_system == "Windows" and platform_machine == "ARM64"
+faster-whisper==1.2.1

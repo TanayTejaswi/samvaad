@@ -48,59 +48,73 @@ class ConnectionManager:
         logger.info("WebSocket client connected. Total clients: %d", len(self.active_connections))
 
     def disconnect(self, websocket: WebSocket) -> None:
-        self.active_connections.remove(websocket)
-        logger.info("WebSocket client disconnected. Total clients: %d", len(self.active_connections))
+        if websocket in self.active_connections:
+            self.active_connections.remove(websocket)
+            logger.info("WebSocket client disconnected. Total clients: %d", len(self.active_connections))
 
     async def broadcast(self, message: dict[str, Any]) -> None:
+        dead_connections = []
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
             except Exception as e:  # noqa: BLE001
                 logger.error("Error broadcasting to client: %s", e)
+                dead_connections.append(connection)
+        
+        for dead_conn in dead_connections:
+            self.disconnect(dead_conn)
 
 manager = ConnectionManager()
 
 
 def handle_speech_segment(segment: np.ndarray) -> None:
     """Callback fired when the VAD identifies a complete speech chunk."""
-    # Notify clients that we are transcribing
-    asyncio.run_coroutine_threadsafe(
-        manager.broadcast({"type": "STATUS", "status": "transcribing"}),
-        loop
-    )
-    
-    # 1. Mel extraction
-    start_time = time.perf_counter()
-    mel = log_mel_spectrogram(segment)
-    
-    # 2. Inference
-    transcript = engine.infer(mel)
-    latency_ms = int((time.perf_counter() - start_time) * 1000)
-    
-    from datetime import timezone
-    device_label = "npu" if "QNNExecutionProvider" in engine.backend_name else "cpu"
-    timestamp = datetime.now(timezone.utc).isoformat()
-    
-    # 3. Save to DB
-    storage.save_transcript(timestamp, transcript, latency_ms, device_label)
-    
-    # 4. Broadcast
-    asyncio.run_coroutine_threadsafe(
-        manager.broadcast({
-            "type": "TRANSCRIPT",
-            "timestamp": timestamp,
-            "text": transcript,
-            "latency_ms": latency_ms,
-            "device": device_label
-        }),
-        loop
-    )
-    
-    # Notify idle
-    asyncio.run_coroutine_threadsafe(
-        manager.broadcast({"type": "STATUS", "status": "idle"}),
-        loop
-    )
+    try:
+        # Notify clients that we are transcribing
+        asyncio.run_coroutine_threadsafe(
+            manager.broadcast({"type": "STATUS", "status": "transcribing"}),
+            loop
+        )
+        
+        # 1 & 2. Inference
+        start_time = time.perf_counter()
+        
+        # If using WhisperRealtimeEngine, pass raw audio
+        if hasattr(engine, 'set_raw_audio'):
+            engine.set_raw_audio(segment)
+            transcript = engine.infer(None)
+        else:
+            mel = log_mel_spectrogram(segment)
+            transcript = engine.infer(mel)
+            
+        latency_ms = int((time.perf_counter() - start_time) * 1000)
+        
+        from datetime import timezone
+        device_label = "npu" if "QNNExecutionProvider" in engine.backend_name else "cpu"
+        timestamp = datetime.now(timezone.utc).isoformat()
+        
+        # 3. Save to DB
+        storage.save_transcript(timestamp, transcript, latency_ms, device_label)
+        
+        # 4. Broadcast
+        asyncio.run_coroutine_threadsafe(
+            manager.broadcast({
+                "type": "TRANSCRIPT",
+                "timestamp": timestamp,
+                "text": transcript,
+                "latency_ms": latency_ms,
+                "device": device_label
+            }),
+            loop
+        )
+    except Exception as e:
+        logger.error("Error in speech handler: %s", e, exc_info=True)
+    finally:
+        # Notify idle
+        asyncio.run_coroutine_threadsafe(
+            manager.broadcast({"type": "STATUS", "status": "idle"}),
+            loop
+        )
 
 
 @asynccontextmanager
@@ -109,16 +123,10 @@ async def lifespan(app: FastAPI):
     global engine, audio_streamer, loop
     loop = asyncio.get_running_loop()
     
-    # Initialize Engine
-    model_dir = config.get("inference", {}).get("model_dir", "models/whisper")
-    default_device = config.get("inference", {}).get("default_device", "npu")
-    
-    if default_device == "npu":
-        engine = WhisperNPUEngine()
-    else:
-        engine = WhisperCPUEngine()
-        
-    engine.load(model_dir)
+    # Initialize Realtime Engine
+    from inference.whisper_realtime import WhisperRealtimeEngine
+    engine = WhisperRealtimeEngine(model_size="base")
+    engine.load(config.get("inference", {}).get("model_dir", "models/whisper"))
     engine.warmup()
     
     # Initialize Audio Streamer
@@ -181,22 +189,35 @@ async def simulate_speech():
 @app.websocket("/captions")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
+    # Give this connection its own dedicated VAD instance!
+    from app.vad import EnergyVAD
+    ws_vad = EnergyVAD(config)
+    
     try:
         while True:
             message = await websocket.receive()
+            if message.get("type") == "websocket.disconnect":
+                break
+                
             if message.get("bytes") is not None:
                 audio_bytes = message["bytes"]
                 audio_array = np.frombuffer(audio_bytes, dtype=np.float32)
                 
-                if audio_streamer and audio_streamer.vad:
-                    segment = audio_streamer.vad.process(audio_array)
-                    if segment is not None:
-                        logger.info("VAD triggered! Segment length: %d", len(segment))
-                        loop = asyncio.get_running_loop()
-                        loop.run_in_executor(None, handle_speech_segment, segment)
-            elif "text" in message:
-                pass
-    except WebSocketDisconnect:
+                # Debug logging every 50th block
+                energy = np.sqrt(np.mean(np.square(audio_array)))
+                if getattr(websocket, "block_count", 0) % 50 == 0:
+                    logger.info("Received WS audio chunk. Energy: %f, Size: %d", energy, len(audio_array))
+                websocket.block_count = getattr(websocket, "block_count", 0) + 1
+                
+                # Use the dedicated VAD!
+                segment = ws_vad.process(audio_array)
+                if segment is not None:
+                    logger.info("WebSocket VAD triggered! Segment length: %d", len(segment))
+                    loop = asyncio.get_running_loop()
+                    loop.run_in_executor(None, handle_speech_segment, segment)
+    except Exception as e:
+        logger.warning("WebSocket connection dropped: %s", e)
+    finally:
         manager.disconnect(websocket)
 
 # Mount static frontend

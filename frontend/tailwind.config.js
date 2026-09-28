@@ -8,13 +8,13 @@ export default {
     extend: {
       colors: {
         samvaad: {
-          bgPrimary: "#09090B",     // Pure dark background
-          bgSecondary: "#18181B",   // Slightly lighter dark card
-          textPrimary: "#FAFAFA",   // Off-white text
-          textMuted: "#A1A1AA",     // Zinc-400
-          accentPrimary: "#3B82F6", // Bright blue
-          accentSecondary: "#8B5CF6",// Purple
-          border: "#27272A",        // Zinc-800
+          bgPrimary: "#FFFFFF",     // Clean White Background
+          bgSecondary: "#F4F4F5",   // Light Gray Surface
+          textPrimary: "#000000",   // Solid Black Text
+          textMuted: "#52525B",     // Dim Gray
+          accentPrimary: "#EAB308", // Shiny Yellow Accent!
+          accentSecondary: "#FDE047",// Bright Yellow glow
+          border: "#E4E4E7",        // Light border
         },
       },
       fontFamily: {
@@ -23,11 +23,11 @@ export default {
         mono: ["JetBrains Mono", "monospace"],
       },
       boxShadow: {
-        'glow': '0px 0px 20px rgba(59, 130, 246, 0.15)',
-        'glow-hover': '0px 0px 30px rgba(59, 130, 246, 0.25)',
+        'glow': '0px 0px 20px rgba(234, 179, 8, 0.25)',
+        'glow-hover': '0px 0px 30px rgba(234, 179, 8, 0.45)',
       },
       borderRadius: {
-        'card': '16px',
+        'card': '20px',
         'button': '12px',
       }
     },

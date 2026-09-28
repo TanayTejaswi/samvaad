@@ -111,7 +111,14 @@ def log_mel_spectrogram(
     # Normalize to [-1.0, 1.0] approx
     log_spec = (log_spec + 4.0) / 4.0
     
-    # Transpose to [n_mels, n_frames] and expand dims
-    # Shape becomes [1, 80, 3000] by dropping the last frame
-    out = log_spec[:-1].T
+    # Transpose to [n_mels, n_frames]
+    out = log_spec.T
+    
+    # Pad or truncate to exactly 3000 frames (30 seconds)
+    if out.shape[1] > 3000:
+        out = out[:, :3000]
+    elif out.shape[1] < 3000:
+        pad_width = 3000 - out.shape[1]
+        out = np.pad(out, ((0, 0), (0, pad_width)), mode='constant')
+        
     return np.expand_dims(out, axis=0).astype(np.float32)
