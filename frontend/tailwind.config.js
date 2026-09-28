@@ -7,13 +7,14 @@ export default {
   theme: {
     extend: {
       colors: {
-        mono: {
-          bg: "#FAFAFA",         // Shiny White Background
-          surface: "#FFFFFF",    // Pure White Surface
-          textMain: "#111827",   // Almost Black Text
-          textMuted: "#6B7280",  // Slate Gray Muted
-          accent: "#000000",     // Pure Black Accent
-          border: "#E5E7EB",     // Light border
+        samvaad: {
+          bgPrimary: "#09090B",     // Pure dark background
+          bgSecondary: "#18181B",   // Slightly lighter dark card
+          textPrimary: "#FAFAFA",   // Off-white text
+          textMuted: "#A1A1AA",     // Zinc-400
+          accentPrimary: "#3B82F6", // Bright blue
+          accentSecondary: "#8B5CF6",// Purple
+          border: "#27272A",        // Zinc-800
         },
       },
       fontFamily: {
@@ -22,12 +23,12 @@ export default {
         mono: ["JetBrains Mono", "monospace"],
       },
       boxShadow: {
-        'shiny': '0px 10px 30px rgba(0, 0, 0, 0.05)',
-        'shiny-hover': '0px 20px 40px rgba(0, 0, 0, 0.08)',
+        'glow': '0px 0px 20px rgba(59, 130, 246, 0.15)',
+        'glow-hover': '0px 0px 30px rgba(59, 130, 246, 0.25)',
       },
       borderRadius: {
         'card': '16px',
-        'button': '9999px', // Pill shape for sleekness
+        'button': '12px',
       }
     },
   },

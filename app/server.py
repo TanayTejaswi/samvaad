@@ -185,16 +185,13 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             message = await websocket.receive()
             if message.get("bytes") is not None:
-                # Browser sends Float32 PCM array buffer
                 audio_bytes = message["bytes"]
                 audio_array = np.frombuffer(audio_bytes, dtype=np.float32)
                 
-                # We can route it directly through the VAD if we have an instance
                 if audio_streamer and audio_streamer.vad:
                     segment = audio_streamer.vad.process(audio_array)
                     if segment is not None:
-                        # VAD completed a chunk! Run it!
-                        # Use executor to avoid blocking the async event loop
+                        logger.info("VAD triggered! Segment length: %d", len(segment))
                         loop = asyncio.get_running_loop()
                         loop.run_in_executor(None, handle_speech_segment, segment)
             elif "text" in message:
