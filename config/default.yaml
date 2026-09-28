@@ -1,0 +1,64 @@
+# Samvaad / Shravan Default Configuration
+# Strict policy: Zero hardcoded paths or environmental thresholds in code.
+
+app:
+  name: "Samvaad - Shravan"
+  version: "0.1.0"
+  description: "NPU-Accelerated Real-Time Speech Perception & Captioning Engine"
+
+server:
+  host: "127.0.0.1"
+  port: 8000
+  ws_endpoint: "/captions"
+  cors_origins:
+    - "http://localhost:5173"
+    - "http://127.0.0.1:5173"
+    - "http://localhost:8000"
+    - "http://127.0.0.1:8000"
+  static_dir: "frontend/dist"
+
+audio:
+  sample_rate: 16000
+  channels: 1
+  dtype: "float32"
+  chunk_duration_s: 30.0
+  block_size_ms: 30
+  ring_buffer_seconds: 60.0
+
+vad:
+  energy_threshold: 0.015
+  silence_duration_s: 0.8
+  min_speech_duration_s: 0.4
+  max_speech_duration_s: 30.0
+  speech_pad_s: 0.2
+
+inference:
+  default_device: "npu"
+  allow_cpu_fallback: true
+  warmup_iterations: 3
+  model_dir: "models/whisper"
+  whisper_model_size: "small"
+  qnn:
+    backend_path: "QnnHtp.dll"
+    backend_type: "htp"
+    perf_mode: "burst"
+    profiling_level: "basic"
+    enable_htp_fp16_precision: "1"
+    disable_cpu_ep_fallback: 1
+  cpu:
+    intra_op_num_threads: 4
+    execution_mode: "sequential"
+
+storage:
+  db_path: "data/transcripts.db"
+  max_history_entries: 500
+
+benchmarks:
+  results_dir: "benchmarks/results"
+  iterations: 50
+  test_audio_dir: "data/test_audio"
+
+telemetry:
+  log_level: "INFO"
+  enable_perf_counter: true
+  log_file: "logs/telemetry.jsonl"
