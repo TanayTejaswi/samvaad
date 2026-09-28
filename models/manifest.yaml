@@ -1,0 +1,14 @@
+models:
+  whisper_small_quantized:
+    provider: "Qualcomm AI Hub"
+    target: "Snapdragon X-Series (Hexagon NPU)"
+    files:
+      - name: "whisper_encoder.onnx"
+        sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" # placeholder
+        url: "https://aihub.qualcomm.com/models/whisper_small"
+      - name: "whisper_decoder.onnx"
+        sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" # placeholder
+        url: "https://aihub.qualcomm.com/models/whisper_small"
+    tokenizer:
+      name: "tokenizer.json"
+      type: "BPE"
