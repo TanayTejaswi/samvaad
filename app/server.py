@@ -167,14 +167,38 @@ async def health_check():
 async def get_history():
     return storage.get_history()
 
+@app.post("/api/simulate")
+async def simulate_speech():
+    """Simulates a speech segment for testing UI without a mic."""
+    # Create a dummy 16kHz audio array (3 seconds)
+    import numpy as np
+    dummy_audio = np.random.randn(16000 * 3).astype(np.float32)
+    # Fire the handler asynchronously so we don't block the HTTP response
+    loop = asyncio.get_running_loop()
+    loop.run_in_executor(None, handle_speech_segment, dummy_audio)
+    return {"status": "simulating"}
 
 @app.websocket("/captions")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Keep connection alive
-            await websocket.receive_text()
+            message = await websocket.receive()
+            if "bytes" in message:
+                # Browser sends Float32 PCM array buffer
+                audio_bytes = message["bytes"]
+                audio_array = np.frombuffer(audio_bytes, dtype=np.float32)
+                
+                # We can route it directly through the VAD if we have an instance
+                if audio_streamer and audio_streamer.vad:
+                    segment = audio_streamer.vad.process(audio_array)
+                    if segment is not None:
+                        # VAD completed a chunk! Run it!
+                        # Use executor to avoid blocking the async event loop
+                        loop = asyncio.get_running_loop()
+                        loop.run_in_executor(None, handle_speech_segment, segment)
+            elif "text" in message:
+                pass
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 

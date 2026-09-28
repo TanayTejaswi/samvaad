@@ -7,30 +7,27 @@ export default {
   theme: {
     extend: {
       colors: {
-        samvaad: {
-          bgPrimary: "#0F172A",     // Deep Slate base layer
-          bgSecondary: "#1E293B",   // Charcoal surface layer
-          textPrimary: "#F8FAFC",   // High-contrast Off-White
-          textMuted: "#94A3B8",     // Mid-tone slate metadata
-          accentPrimary: "#6366F1", // Electric Indigo
-          accentSecondary: "#14B8A6",// Vibrant Teal
-          border: "#334155",        // Subtle structural boundary
+        mono: {
+          bg: "#FAFAFA",         // Shiny White Background
+          surface: "#FFFFFF",    // Pure White Surface
+          textMain: "#111827",   // Almost Black Text
+          textMuted: "#6B7280",  // Slate Gray Muted
+          accent: "#000000",     // Pure Black Accent
+          border: "#E5E7EB",     // Light border
         },
       },
       fontFamily: {
-        sans: ["Inter", "Roboto", "system-ui", "sans-serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
         display: ["Plus Jakarta Sans", "Inter", "sans-serif"],
-        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
+        mono: ["JetBrains Mono", "monospace"],
       },
       boxShadow: {
-        'samvaad-soft': '0px 4px 20px rgba(0, 0, 0, 0.25)',
+        'shiny': '0px 10px 30px rgba(0, 0, 0, 0.05)',
+        'shiny-hover': '0px 20px 40px rgba(0, 0, 0, 0.08)',
       },
       borderRadius: {
-        'control': '8px',
-        'card': '12px',
-      },
-      backdropBlur: {
-        'glass': '12px',
+        'card': '16px',
+        'button': '9999px', // Pill shape for sleekness
       }
     },
   },
