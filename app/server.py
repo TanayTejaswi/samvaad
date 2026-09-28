@@ -129,13 +129,9 @@ async def lifespan(app: FastAPI):
     engine.load(config.get("inference", {}).get("model_dir", "models/whisper"))
     engine.warmup()
     
-    # Initialize Audio Streamer
-    # For testing without a microphone, we can mock or disable this.
-    try:
-        audio_streamer = AudioStreamer(on_segment_ready=handle_speech_segment, config=config)
-        audio_streamer.start()
-    except Exception as e:  # noqa: BLE001
-        logger.error("Microphone capture disabled: %s", e)
+    # Disable background server mic since we use WebSockets for browser audio
+    audio_streamer = None
+    logger.info("Server microphone capture disabled in favor of WebSocket audio.")
     
     yield
     

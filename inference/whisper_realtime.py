@@ -32,10 +32,14 @@ class WhisperRealtimeEngine(WhisperEngine):
         if self._raw_audio is None:
             return "[No audio segment]"
         
+        # To support Hinglish heavily on short chunks, we use a robust initial prompt
+        # and beam_size=5 for better context decoding.
         segments, info = self.model.transcribe(
             self._raw_audio,
-            beam_size=1,
-            vad_filter=False,  # We already did VAD
+            beam_size=5,
+            vad_filter=False,
+            initial_prompt="Namaste, hello! Kya haal hai? This is a Hinglish conversation.",
+            condition_on_previous_text=False
         )
         text = " ".join(seg.text.strip() for seg in segments)
         self._raw_audio = None
