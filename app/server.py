@@ -216,6 +216,39 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         manager.disconnect(websocket)
 
+@app.websocket("/video")
+async def video_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    from engine.sign_engine import SignEngine
+    import cv2
+    sign_engine = SignEngine()
+    
+    try:
+        while True:
+            message = await websocket.receive()
+            if message.get("type") == "websocket.disconnect":
+                break
+                
+            if message.get("bytes") is not None:
+                # Decode JPEG frame
+                np_arr = np.frombuffer(message["bytes"], np.uint8)
+                frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+                
+                if frame is not None:
+                    # Process frame
+                    result = sign_engine.process_frame(frame)
+                    
+                    # We strip the raw numpy arrays for JSON serialization
+                    if "landmarks" in result:
+                        del result["landmarks"]
+                        
+                    if result.get("type") == "SIGN_RECOGNIZED":
+                        await manager.broadcast(result)
+    except Exception as e:
+        logger.warning("Video WebSocket dropped: %s", e)
+    finally:
+        manager.disconnect(websocket)
+
 # Mount static frontend
 static_dir = Path(config.get("server", {}).get("static_dir", "frontend/dist"))
 if static_dir.exists():

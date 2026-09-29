@@ -37,8 +37,9 @@ class WhisperRealtimeEngine(WhisperEngine):
         segments, info = self.model.transcribe(
             self._raw_audio,
             beam_size=5,
-            vad_filter=False,
-            initial_prompt="Namaste, hello! Kya haal hai? This is a Hinglish conversation.",
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=500),
+            language="hi", # Force Hindi/Hinglish
             condition_on_previous_text=False
         )
         text = " ".join(seg.text.strip() for seg in segments)
