@@ -4,7 +4,6 @@ import logging
 from typing import Dict, Any, List, Optional
 import time
 
-from inference.base import InferenceBackend
 from inference.qnn_session import create_session
 
 logger = logging.getLogger("samvaad.inference.hands")
@@ -143,7 +142,7 @@ def get_rotated_crop_matrix(x_center, y_center, width, height, rotation, target_
     
     return matrix
 
-class HandPipeline(InferenceBackend):
+class HandPipeline:
     """Full MediaPipe Hand Landmark pipeline running entirely via ONNX."""
     
     def __init__(self, palm_model_path: str = "models/hands/palm_detection.onnx", 

@@ -71,10 +71,17 @@ def handle_speech_segment(segment: np.ndarray) -> None:
     """Callback fired when the VAD identifies a complete speech chunk."""
     try:
         # Notify clients that we are transcribing
-        asyncio.run_coroutine_threadsafe(
-            manager.broadcast({"type": "STATUS", "status": "transcribing"}),
-            loop
-        )
+        loop = asyncio.get_running_loop() if hasattr(asyncio, 'get_running_loop') else asyncio.get_event_loop()
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+            
+        if loop and loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                manager.broadcast({"type": "STATUS", "status": "transcribing"}),
+                loop
+            )
         
         # 1 & 2. Inference
         start_time = time.perf_counter()
@@ -111,10 +118,15 @@ def handle_speech_segment(segment: np.ndarray) -> None:
         logger.error("Error in speech handler: %s", e, exc_info=True)
     finally:
         # Notify idle
-        asyncio.run_coroutine_threadsafe(
-            manager.broadcast({"type": "STATUS", "status": "idle"}),
-            loop
-        )
+        try:
+            current_loop = asyncio.get_running_loop()
+            if current_loop and current_loop.is_running():
+                asyncio.run_coroutine_threadsafe(
+                    manager.broadcast({"type": "STATUS", "status": "idle"}),
+                    current_loop
+                )
+        except RuntimeError:
+            pass
 
 
 @asynccontextmanager
