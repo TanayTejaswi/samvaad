@@ -227,6 +227,9 @@ async def video_endpoint(websocket: WebSocket):
     sign_engine = SignEngine()
     llm_engine = GlossToTextEngine()
     
+    from app.tts import TTSEngine
+    tts_engine = TTSEngine()
+    
     # Sentence buffer to accumulate glosses
     sentence_buffer = []
     last_sign_time = time.time()
@@ -248,6 +251,9 @@ async def video_endpoint(websocket: WebSocket):
                     if sentence_buffer and (time.time() - last_sign_time) > sentence_timeout:
                         gloss_seq = " ".join(sentence_buffer)
                         translation = llm_engine.translate(gloss_seq)
+                        
+                        # Phase 8: Speak the translated sentence out loud!
+                        tts_engine.speak(translation["text"])
                         
                         await manager.broadcast({
                             "type": "TRANSCRIPT",
