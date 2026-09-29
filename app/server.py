@@ -220,8 +220,17 @@ async def websocket_endpoint(websocket: WebSocket):
 async def video_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     from engine.sign_engine import SignEngine
+    from language.gloss2text import GlossToTextEngine
     import cv2
+    import time
+    
     sign_engine = SignEngine()
+    llm_engine = GlossToTextEngine()
+    
+    # Sentence buffer to accumulate glosses
+    sentence_buffer = []
+    last_sign_time = time.time()
+    sentence_timeout = 2.5 # translate after 2.5s of no signing
     
     try:
         while True:
@@ -235,14 +244,33 @@ async def video_endpoint(websocket: WebSocket):
                 frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
                 
                 if frame is not None:
-                    # Process frame
+                    # 1. Check for sentence timeout
+                    if sentence_buffer and (time.time() - last_sign_time) > sentence_timeout:
+                        gloss_seq = " ".join(sentence_buffer)
+                        translation = llm_engine.translate(gloss_seq)
+                        
+                        await manager.broadcast({
+                            "type": "TRANSCRIPT",
+                            "text": translation["text"],
+                            "source": "sign_translated",
+                            "timestamp": int(time.time() * 1000),
+                            "latency_ms": translation["latency_ms"],
+                            "device": translation["backend"]
+                        })
+                        sentence_buffer.clear()
+                        
+                    # 2. Process frame
                     result = sign_engine.process_frame(frame)
                     
-                    # We strip the raw numpy arrays for JSON serialization
                     if "landmarks" in result:
                         del result["landmarks"]
                         
                     if result.get("type") == "SIGN_RECOGNIZED":
+                        gloss = result.get("gloss", "")
+                        if gloss and gloss != "UNSURE":
+                            sentence_buffer.append(gloss)
+                            last_sign_time = time.time()
+                            
                         await manager.broadcast(result)
     except Exception as e:
         logger.warning("Video WebSocket dropped: %s", e)
