@@ -1,53 +1,50 @@
-# Samvaad / Shravan
+# Samvaad: Two-Way ISL Communication Bridge
 
-An offline, live captioning application designed for real-time speech perception. 
-This project features a beautiful shiny yellow/black/white UI and currently runs locally on the CPU using `faster-whisper` (supporting English and Hinglish seamlessly out of the box). It is architected to ultimately target the Snapdragon X-Series Hexagon NPU.
+Samvaad is an offline, real-time communication bridge between Indian Sign Language (ISL) users and hearing people, specifically optimized for Windows 11 on Snapdragon X-series (ARM64) laptops with Hexagon NPUs.
 
-## Architecture
+## Quick Start on Your Snapdragon Laptop
 
-- **Backend**: FastAPI + WebSockets + SQLite (Local storage)
-- **Frontend**: React + Vite + Tailwind CSS (Beautiful Custom Aesthetic)
-- **ML Engine**: `faster-whisper` (Base model) via CTranslate2 CPU backend
-- **Audio Capture**: Browser Web Audio API Float32 streaming via WebSockets
-- **VAD**: Custom real-time Energy-based Voice Activity Detection
+To get the full pipeline (including Hand Tracking, SignNet AI, and the Local LLM) running natively on your laptop, follow these exact steps:
 
-## Setup & Installation
-
-You need Python 3.11+ and Node.js v20+.
-
-### 1. Backend Setup
-Create a virtual environment and install dependencies:
-```bash
+### 1. Clone & Install Dependencies
+Open your Windows Terminal (PowerShell) and run:
+```powershell
+git clone https://github.com/TanayTejaswi/samvaad.git
+cd samvaad
 python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+.\.venv\Scripts\Activate.ps1
+pip install fastapi uvicorn websockets onnxruntime numpy opencv-python pyttsx3 pyyaml requests
 ```
+*(Note: Do not install `mediapipe`. The hand tracking engine was custom-written to run natively without it).*
 
-### 2. Frontend Build
-Navigate to the frontend folder, install dependencies, and build the static assets:
-```bash
-cd frontend
-npm install
-npm run build
-cd ..
-```
+### 2. Download Qualcomm ONNX Models
+To enable the camera to track your hands, you must download the pre-compiled models from AI Hub:
+1. Make sure you have a Python `< 3.14` environment.
+2. `pip install qai-hub-models`
+3. Download the `MediaPipe-Hand-Detection` ONNX files.
+4. Place them in: `samvaad/models/hands/palm_detection.onnx` and `samvaad/models/hands/hand_landmark.onnx`.
 
-*(Note: The backend is configured to automatically serve the `frontend/dist` folder on port 8000, so you don't need a separate frontend dev server once built).*
+*(If you skip this step, the engine will gracefully fall back to "Simulate" mode).*
 
-## Running the Application
+### 3. Install Ollama (For Fluent English Translation)
+To translate broken ISL grammar (`"ME COLLEGE GO"`) into fluent English (`"I am going to college."`), you need the local LLM running.
+1. Download Ollama for Windows from [ollama.com](https://ollama.com).
+2. Open terminal and run: `ollama run llama3.2:3b`
+3. Keep it running in the background.
 
-Start the backend server (which also serves the frontend):
-```bash
-source .venv/bin/activate
+### 4. Run the Samvaad Server
+With your models in place and Ollama running, start the server!
+```powershell
+.\.venv\Scripts\Activate.ps1
 uvicorn app.server:app --host 0.0.0.0 --port 8000
 ```
+Open `http://localhost:8000` in your Chrome/Edge browser. Allow camera and microphone permissions.
 
-Navigate to **http://localhost:8000** in your browser. 
-Click **Start Mic** and start speaking! The app will automatically detect your speech (English or Hinglish) and transcribe it locally.
+---
 
-## Features
-
-- **100% Offline**: No data leaves your machine.
-- **Hinglish Support**: The `base` model automatically detects and transcribes English, Hindi, or a mix of both.
-- **Ultra-Sensitive VAD**: Mathematically tuned to ignore room hiss but capture quiet speech.
-- **Live Local Database**: Transcripts are instantly saved to `data/transcripts.db`.
+### How to use Personal Sign Enrollment (Phase 9)
+Want to teach the AI a custom slang word? Open a new terminal and run:
+```powershell
+python scripts/enroll_cli.py
+```
+Follow the prompt to sign the word 5 times. The AI will extract the 128-d NPU embedding and hijack the neural network the next time you sign it!
