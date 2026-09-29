@@ -58,23 +58,66 @@ class SignEngine:
         
     def _recognize_segment(self):
         """Runs the SignNet model on the buffered sequence."""
+        if len(self.landmark_buffer) < 5:
+            # Too short to be a sign
+            return {"type": "STATUS", "status": "idle"}
+            
+        start_time = time.time()
+        
+        # 1. Format into (T, 2, 21, 3)
+        T = len(self.landmark_buffer)
+        sequence = np.zeros((T, 2, 21, 3), dtype=np.float32)
+        
+        for t, res in enumerate(self.landmark_buffer):
+            if res["left"] is not None:
+                sequence[t, 0] = res["left"]
+            if res["right"] is not None:
+                sequence[t, 1] = res["right"]
+                
+        # 2. Extract features using Phase 3 pipeline
+        from inference.features import extract_features
+        features = extract_features(sequence, target_length=48)
+        
+        # 3. Run Inference
         if not self.model or not self.vocab_map:
-            # Mock mode if no model is loaded
+            # Mock mode if no model is loaded yet
             return {
                 "type": "SIGN_RECOGNIZED",
-                "gloss": "HELLO",
-                "confidence": 0.95,
+                "gloss": "HELLO (Mock)",
+                "confidence": 0.99,
                 "alternatives": ["THANK YOU", "PLEASE"],
-                "latency_ms": 150
+                "latency_ms": int((time.time() - start_time) * 1000)
             }
             
-        # TODO: Format landmarks from self.landmark_buffer into (T, 2, 21, 3) 
-        # and run through self.model.
+        # NPU / ONNX Inference
+        # Model expects (1, 48, 254)
+        input_tensor = np.expand_dims(features, axis=0)
         
-        return {
-            "type": "SIGN_RECOGNIZED",
-            "gloss": "UNIMPLEMENTED",
-            "confidence": 0.0,
-            "alternatives": [],
-            "latency_ms": 0
-        }
+        try:
+            # Assuming self.model is an ONNX InferenceSession wrapper
+            out = self.model.infer({"input": input_tensor})
+            logits = out["logits"][0] # (num_classes,)
+            
+            # Softmax
+            exp_logits = np.exp(logits - np.max(logits))
+            probs = exp_logits / exp_logits.sum()
+            
+            top3_idx = np.argsort(probs)[-3:][::-1]
+            top_prob = probs[top3_idx[0]]
+            
+            gloss = self.vocab_map.get(str(top3_idx[0]), f"Unknown_{top3_idx[0]}")
+            alts = [self.vocab_map.get(str(i), f"Unknown_{i}") for i in top3_idx[1:]]
+            
+            if top_prob < 0.4:
+                gloss = "UNSURE"
+            
+            return {
+                "type": "SIGN_RECOGNIZED",
+                "gloss": gloss,
+                "confidence": float(top_prob),
+                "alternatives": alts,
+                "latency_ms": int((time.time() - start_time) * 1000)
+            }
+        except Exception as e:
+            logger.error("SignNet inference failed: %s", e)
+            return {"type": "STATUS", "status": "idle"}
