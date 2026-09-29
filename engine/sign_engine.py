@@ -97,6 +97,31 @@ class SignEngine:
             # Assuming self.model is an ONNX InferenceSession wrapper
             out = self.model.infer({"input": input_tensor})
             logits = out["logits"][0] # (num_classes,)
+            live_embedding = out["embedding"][0] # (128,)
+            
+            # --- PHASE 9: PERSONAL SIGN OVERRIDE ---
+            from engine.enrollment import EnrollmentEngine, get_cosine_similarity
+            enroll_engine = EnrollmentEngine()
+            
+            best_custom_word = None
+            best_custom_score = 0.0
+            
+            for word, prototype in enroll_engine.personal_vocab.items():
+                sim = get_cosine_similarity(live_embedding, prototype)
+                if sim > best_custom_score:
+                    best_custom_score = sim
+                    best_custom_word = word
+                    
+            if best_custom_score > 0.85:
+                # Override!
+                return {
+                    "type": "SIGN_RECOGNIZED",
+                    "gloss": best_custom_word,
+                    "confidence": float(best_custom_score),
+                    "alternatives": ["(Custom Sign)"],
+                    "latency_ms": int((time.time() - start_time) * 1000)
+                }
+            # ---------------------------------------
             
             # Softmax
             exp_logits = np.exp(logits - np.max(logits))
